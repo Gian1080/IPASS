@@ -9,6 +9,8 @@ class MAX7219
 private:
 	hwlib::spi_bus_bit_banged_sclk_mosi_miso& spiBus;
 	target::pin_out& chipSelect;
+	uint8_t bufferArray [32]={};
+	uint8_t sendDataArray [8] = {};
 public:
 	MAX7219(hwlib::spi_bus_bit_banged_sclk_mosi_miso& spiBus, target::pin_out& chipSelect):
 	spiBus(spiBus),
@@ -31,7 +33,7 @@ public:
 	spiBus.write_and_read(chipSelect,2,brightnessData,nullptr);
 	}
 	
-	void setBrightness(uint8_t B)
+	void setBrightness(int screen, uint8_t B)
 	{
 		if(B > 15 )
 		{
@@ -42,8 +44,8 @@ public:
 			B = 0;
 		}
 		uint8_t brightnessAdress = 0x0A;
-		uint8_t brightnessData [2] = {brightnessAdress,B};
-		spiBus.write_and_read(chipSelect,2,brightnessData,nullptr);
+		multiSetPixel(screen,brightnessAdress,B);
+		
 	}
 	
 	void clearChip()
@@ -51,7 +53,7 @@ public:
 		uint8_t forLoopData [2] = {}; 
 		for(unsigned int i=0; i<9; i++)
 		{
-			hwlib::wait_ms(77);
+			hwlib::wait_ms(22);
 			forLoopData[0] = i;
 			forLoopData[1] = 0;
 			spiBus.write_and_read(chipSelect,2,forLoopData,nullptr);
@@ -65,6 +67,54 @@ public:
 		spiBus.write_and_read(chipSelect,2,pixelSet,nullptr);
 	}
 	
-	void 
+	void flush()
+	{
+/*		uint8_t tempArray [2] = {};*/
+		
+		for(unsigned int i=1; i<5; i++)
+		{
+			hwlib::wait_ms(1);
+			hwlib::cout<< i << hwlib::endl;
+			for(unsigned int j=0; j<8; j++)
+			{
+				hwlib::wait_ms(1);
+				multiSetPixel(i,j+1, bufferArray[j+((i-1)*8)]);
+			}
+		}
+		
+/*		for(unsigned int i=0; i<8; i++)
+		{
+			tempArray[0] = i+1;
+			tempArray[1] = bufferArray[i];
+			spiBus.write_and_read(chipSelect,2,tempArray,nullptr);
+		}*/
+	}
+	
+	void multiSetPixel(int screen, uint8_t row, uint8_t column)
+	{
+		for(auto & t : sendDataArray)
+		{
+			t = 0;
+		}
+		
+		switch(screen)
+		{
+			case 1 : screen = 4;
+				break;
+			case 2 : screen = 3;
+				break;
+			case 3 : screen = 2;
+				break;
+			case 4 : screen = 1;
+				break;
+		}
+		
+		
+		int tempScreen = (screen * 2 )-1;
+		sendDataArray [tempScreen] = column;
+		sendDataArray [tempScreen-1] = row;
+		spiBus.write_and_read(chipSelect,8, sendDataArray, nullptr);
+	}
+	
 };
 #endif //MAX7219_HPP
