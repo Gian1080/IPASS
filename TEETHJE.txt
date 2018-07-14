@@ -1,0 +1,36 @@
+#include "MAX7219.hpp"
+
+class teeth
+{
+private:
+	uint8_t tooth [8]={102,255,255,126,126,126,90,66};
+	MAX7219& ledMatrix;
+public:
+	teeth(MAX7219& ledMatrix):
+	ledMatrix(ledMatrix)
+	{}
+	void draw(int screen)
+	{
+		for(int i=0; i<8; i++)
+		{
+		ledMatrix.screenCommand(screen,i+1,tooth[i]);
+		}
+		
+	}
+		void reversedraw(int screen)
+	{
+		for(int i=0; i<8; i++)
+		{
+		ledMatrix.screenCommand(screen,i+1,tooth[7-i]);
+		}
+		
+	}
+	void drawToBuffer()
+	{
+		for(unsigned int i=0; i<8; i++)
+		{
+			
+		}
+	}
+	
+};

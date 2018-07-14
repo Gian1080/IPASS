@@ -1,0 +1,165 @@
+#ifndef MAX7219_HPP
+#define MAX7219_HPP
+
+#include "hwlib.hpp"
+namespace target = hwlib::target;
+
+class MAX7219
+{
+private:
+	hwlib::spi_bus_bit_banged_sclk_mosi_miso& spiBus;
+	target::pin_out& chipSelect;
+	uint8_t sendDataArray [8] = {};
+	const uint8_t no_Op				= 0x00;
+	const uint8_t digit0 			= 0x01;
+	const uint8_t digit1			= 0x02;
+	const uint8_t digit2			= 0x03;
+	const uint8_t digit3			= 0x04;
+	const uint8_t digit4			= 0x05;
+	const uint8_t digit5			= 0x06;
+	const uint8_t digit6			= 0x07;
+	const uint8_t digit7			= 0x08;
+	const uint8_t decodeMode		= 0x09;
+	const uint8_t brightness		= 0x0A;
+	const uint8_t scanLimit			= 0x0B;
+	const uint8_t shutDown			= 0x0C;
+	const uint8_t displayTest		= 0x0F;
+public:
+	uint8_t bufferArray [32]={};
+	MAX7219(hwlib::spi_bus_bit_banged_sclk_mosi_miso& spiBus, target::pin_out& chipSelect):
+	spiBus(spiBus),
+	chipSelect(chipSelect)
+	{}
+	
+	void setup()
+	{
+		uint8_t shutdownData [8] = {shutDown,0,shutDown,0,shutDown,0,shutDown,0};
+		spiBus.write_and_read(chipSelect,8,shutdownData,nullptr);
+		
+		uint8_t decoder [8] = {decodeMode,0,decodeMode,0,decodeMode,0,decodeMode,0};
+		spiBus.write_and_read(chipSelect,8,decoder,nullptr);
+		
+		uint8_t scanlimitData [8] = {scanLimit, 7,scanLimit, 7,scanLimit, 7,scanLimit, 7};
+		spiBus.write_and_read(chipSelect,8,scanlimitData,nullptr);
+		
+		uint8_t startupData [8] = {shutDown,1,shutDown,1,shutDown,1,shutDown,1};
+		spiBus.write_and_read(chipSelect,8,startupData,nullptr);
+	}
+	
+	void setBrightness(int screen, uint8_t B)
+	{
+		if(B > 15 )
+		{
+			B = 15;
+		}
+		if(B < 0 )
+		{
+			B = 0;
+		}
+		uint8_t brightnessAdress = 0x0A;
+		screenCommand(screen,brightnessAdress,B);
+	}
+	
+	void setAllBrightness(uint8_t B)
+	{
+	for(unsigned int screen = 1; screen < 5; screen++)
+		{
+			setBrightness(screen, B);
+		}
+	}
+	
+	void clearChip()
+	{
+		uint8_t forLoopData [8] = {}; 
+		for(unsigned int i=0; i<32; i++)
+		{
+			forLoopData[0] = i;
+			forLoopData[1] = 0;
+			spiBus.write_and_read(chipSelect,2,forLoopData,nullptr);
+		}
+	}
+	
+	void setOldPixel(uint8_t Row, int Column)
+	{
+		uint8_t ColumnReplacer = 1 << (Column -1);
+		uint8_t pixelSet [2] = {Row, ColumnReplacer};
+		spiBus.write_and_read(chipSelect,2,pixelSet,nullptr);
+	}
+	
+	void flush()
+	{
+		for(unsigned int i=1; i<5; i++)
+		{
+			for(unsigned int j=0; j<8; j++)
+			{
+				screenCommand(i,j+1, bufferArray[j+((i-1)*8)]);
+			}
+		}
+	}
+	
+	void screenCommand(int screen, uint8_t row, uint8_t column)
+	{
+		for(auto & t : sendDataArray)
+		{
+			t = 0;
+		}
+		
+		switch(screen)
+		{
+			case 1 : screen = 4;
+				break;
+			case 2 : screen = 3;
+				break;
+			case 3 : screen = 2;
+				break;
+			case 4 : screen = 1;
+				break;
+		}
+		
+		
+		int tempScreen = (screen * 2 )-1;
+		sendDataArray [tempScreen] = column;
+		sendDataArray [tempScreen-1] = row;
+		spiBus.write_and_read(chipSelect,8, sendDataArray, nullptr);
+	}
+	
+	void clearBuffer()
+	{
+		for(unsigned int i=0; i<32; i++)
+		{
+			bufferArray[i] = 0;
+		}
+	}
+	
+	void setPixel(uint8_t X, int Y)
+	{
+		uint8_t bitMask = 1 << (Y-1);
+		bufferArray[X-1] = bufferArray [X-1] | bitMask;
+		
+	}
+	
+	void newSetPixel(uint8_t X, uint8_t Y, bool on)
+	{
+		uint8_t remain = X % 8;
+		uint8_t screen = X/8;
+		if(remain != 0 )
+		{
+			screen++;
+			remain = remain -1;
+		}else
+		{
+			remain = 7;
+		}
+		if(on)
+		{
+		bufferArray[((screen-1)*8)+(Y-1)] |= ((1<<remain));
+		}
+		else{
+		bufferArray[((screen-1)*8)+Y-1]&= (~(1<<remain));
+		}
+		(bufferArray[((screen-1)*8)+(Y-1)] == 127);
+		
+	}
+
+};
+#endif //MAX7219_HPP

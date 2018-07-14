@@ -1,0 +1,36 @@
+/*Power = paars
+Ground = blauw
+Data In = Groen
+Chip Select = Geel
+Clock = Oranje*/
+#include "teeth.hpp"
+
+int main( void )
+{	
+   // kill the watchdog
+    WDT->WDT_MR = WDT_MR_WDDIS;
+    
+    namespace target = hwlib::target;
+    auto DIN   = target::pin_out( target::pins::d5 );  //Data-in-pin;
+    auto Clck = target::pin_out( target::pins::d7 );  //Clock-pin;
+    auto CS = target::pin_out(target::pins::d3);     //Select-pin;
+    auto spi  = hwlib::spi_bus_bit_banged_sclk_mosi_miso(Clck,DIN, hwlib::pin_in_dummy);
+ 
+	MAX7219 mijnChip(spi,CS);
+	teeth mijnTand(mijnChip);
+	mijnChip.setup();
+	mijnChip.setAllBrightness(15);
+	mijnTand.draw(3);
+	mijnTand.draw(1);
+	mijnTand.draw(2);
+	mijnTand.draw(4);
+	for(unsigned int i = 1; i < 5; i++)
+	{
+		for(unsigned int j= 1; j < 16; j++)
+		{
+			mijnChip.setBrightness(i,j);
+			hwlib::wait_ms(111);
+		}
+	}
+
+}
