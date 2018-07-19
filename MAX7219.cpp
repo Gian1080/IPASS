@@ -1,7 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 // ==========================================================================
-//
-//
+//Name: Gianluca Piccardo
 //
 // Copyright : gianluca.piccardo@student.hu.nl 2018
 //
@@ -12,7 +11,11 @@
 // ==========================================================================
 /////////////////////////////////////////////////////////////////////////////
 
+
+
 #include "MAX7219.hpp"
+
+
 
 void MAX7219::setup()
 	{
@@ -28,7 +31,7 @@ void MAX7219::setup()
 		uint8_t startupData [8] = {shutDown,1,shutDown,1,shutDown,1,shutDown,1};
 		spiBus.write_and_read(chipSelect,8,startupData,nullptr);
 	}
-	
+
 void MAX7219::setBrightness(int screen, uint8_t B)
 	{
 		if(B > 15 )
@@ -49,24 +52,25 @@ void MAX7219::setAllBrightness(uint8_t B)
 			setBrightness(screen, B);
 		}
 	}
+
 void MAX7219::clearChip()
 	{
 		uint8_t forLoopData [8] = {}; 
-		for(unsigned int i=0; i<8; i++)
+		for(unsigned int i=0; i<32; i++)
 		{
 			forLoopData[0] = i;
 			forLoopData[1] = 0;
 			spiBus.write_and_read(chipSelect,2,forLoopData,nullptr);
 		}
 	}
-	
+
 void MAX7219::setOldPixel(uint8_t Row, int Column)
 	{
 		uint8_t ColumnReplacer = 1 << (Column -1);
 		uint8_t pixelSet [2] = {Row, ColumnReplacer};
 		spiBus.write_and_read(chipSelect,2,pixelSet,nullptr);
 	}
-	
+
 void MAX7219::flush()
 	{
 		for(unsigned int i=1; i<5; i++)
@@ -77,7 +81,7 @@ void MAX7219::flush()
 			}
 		}
 	}
-	
+
 void MAX7219::screenCommand(int screen, uint8_t row, uint8_t column)
 	{
 		if(screen<0 || screen > 4)
@@ -104,7 +108,7 @@ void MAX7219::screenCommand(int screen, uint8_t row, uint8_t column)
 		sendDataArray [tempScreen-1] = row;
 		spiBus.write_and_read(chipSelect,8, sendDataArray, nullptr);
 	}
-	
+
 void MAX7219::clearBuffer()
 	{
 		for(unsigned int i=0; i<32; i++)
@@ -112,14 +116,14 @@ void MAX7219::clearBuffer()
 			bufferArray[i] = 0;
 		}
 	}
-	
+
 void MAX7219::setPixel(uint8_t X, int Y)
 	{
 		uint8_t bitMask = 1 << (Y-1);
 		bufferArray[X-1] = bufferArray [X-1] | bitMask;
 		
 	}
-	
+
 void MAX7219::newSetPixel(uint8_t X, uint8_t Y, bool on)
 	{
 		if(X < 1 || X > 32 || Y < 1 || Y > 8)

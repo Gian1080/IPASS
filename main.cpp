@@ -73,6 +73,7 @@ void showStop(MAX7219 &ledMatrix)
 		ledMatrix.flush();
 		counter1 ++;
 	}
+	
 }
 
 void showTooth(MAX7219 &ledMatrix)
